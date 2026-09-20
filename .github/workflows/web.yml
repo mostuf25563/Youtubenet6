@@ -57,14 +57,21 @@ jobs:
           fi
           DEPLOYED_APP_URL="https://${{ github.repository_owner }}.github.io/${REPO_NAME}/app/"
           echo "Checking live deployed website: $DEPLOYED_APP_URL"
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L "$DEPLOYED_APP_URL" || true)
-          echo "HTTP status: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✅ Live deployed website is reachable ($DEPLOYED_APP_URL)."
+          DEPLOYED_APP_HTML=""
+          for ATTEMPT in 1 2 3 4 5 6; do
+            DEPLOYED_APP_HTML=$(curl -fsSL --max-time 20 "$DEPLOYED_APP_URL" || true)
+            if printf '%s' "$DEPLOYED_APP_HTML" | grep -q '<title>YouTube Video Viewer</title>'; then
+              break
+            fi
+            echo "ℹ️ Deployed page is not ready yet (attempt $ATTEMPT/6)."
+            sleep 10
+          done
+          if printf '%s' "$DEPLOYED_APP_HTML" | grep -q '<title>YouTube Video Viewer</title>'; then
+            echo "✅ Live deployed website is ready ($DEPLOYED_APP_URL)."
             echo "base_url=$DEPLOYED_APP_URL" >> "$GITHUB_OUTPUT"
             echo "use_deployed=true" >> "$GITHUB_OUTPUT"
           else
-            echo "ℹ️ Deployed website not directly reachable (HTTP $HTTP_STATUS), using local server fallback."
+            echo "ℹ️ Deployed website did not serve the YouTube Video Viewer page, using local server fallback."
             echo "base_url=http://localhost:3000" >> "$GITHUB_OUTPUT"
             echo "use_deployed=false" >> "$GITHUB_OUTPUT"
           fi

@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const configuredBaseUrl = process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL;
+const useExternalBaseUrl = Boolean(
+  configuredBaseUrl && !/^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?\b/.test(configuredBaseUrl)
+);
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -7,7 +12,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3000',
+    baseURL: configuredBaseUrl || 'http://127.0.0.1:3000',
     video: 'off',
     trace: 'off',
     screenshot: 'on',
@@ -16,7 +21,7 @@ export default defineConfig({
     },
   },
   outputDir: 'test-results',
-  webServer: process.env.PLAYWRIGHT_BASE_URL
+  webServer: useExternalBaseUrl
     ? undefined
     : {
         command: 'npm run dev',
